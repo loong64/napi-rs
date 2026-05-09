@@ -18,7 +18,7 @@ const packagesToBump = body.map((line) => {
 })
 
 for (const pkg of packagesToBump) {
-  execSync(`yarn workspace ${pkg} exec "npm publish"`, {
+  execSync(`yarn workspace ${pkg} exec "npm pack"`, {
     stdio: 'inherit',
     env: process.env,
   })
