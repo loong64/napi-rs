@@ -1,0 +1,50 @@
+name: Release
+
+env:
+  DEBUG: 'napi:*'
+  RUST_BACKTRACE: 1
+  # https://github.com/nodejs/node/issues/51555#issuecomment-2290742072
+  DISABLE_V8_COMPILE_CACHE: 1
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to build'
+        required: false
+        default: ''
+
+jobs:
+  release-npm:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: 'yarn'
+      - name: Publish
+        run: |
+          yarn install --mode=skip-build
+          npm install -g npm
+          yarn build
+          node ./.github/publish.js
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Make artifacts
+        run: |
+          mkdir -p release-assets
+          find . -name "*.tgz" -exec mv {} release-assets/ \;
+          ls -lh release-assets/
+      - name: Create release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG_NAME="${{ inputs.version }}"
+          gh release create "${TAG_NAME}" \
+            --repo ${{ github.repository }} \
+            --generate-notes \
+            --title "${TAG_NAME}" \
+            release-assets/*
